@@ -1,4 +1,4 @@
-package server;
+package client;
 
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
@@ -11,9 +11,9 @@ import java.util.concurrent.TimeUnit;
 
 public class CacheServiceImpl {
 
-    private BackendServiceImpl backendService = new BackendServiceImpl();
+    private static BackendServiceImpl backendService = new BackendServiceImpl();
 
-    private HazelcastInstance getHazelcastHandle(){
+    private static HazelcastInstance getHazelcastHandle(){
         ClientConfig clientConfig = new ClientConfig();
         clientConfig.setClusterName("TestCluster1");
         //clientConfig.setCredentials(new UsernamePasswordCredentials("", ""));
@@ -24,24 +24,40 @@ public class CacheServiceImpl {
         return client;
     }
 
-    public String getProfileData(String userName) {
+    private static String getProfileData(String userName) {
         HazelcastInstance client = getHazelcastHandle();
         IMap<String,String> map = client.getMap("profile-map");
         if (map.containsKey(userName)) {
-            return map.get(userName);
+            System.out.println("Will return from cache");
+            String cachedData =  map.get(userName);
+            client.shutdown();
+            return cachedData;
         } else {
+            System.out.println("Will return from backend");
             String profileFromBackend = backendService.getProfileDetails(userName);
-             map.put(userName,profileFromBackend, 3600, TimeUnit.SECONDS);
+             map.put(userName,profileFromBackend, 10, TimeUnit.SECONDS);
              client.shutdown();
              return profileFromBackend;
         }
     }
 
-    public void updateProfileData(String userName, String newProfileData) {
+    private static void updateProfileData(String userName, String newProfileData) {
         HazelcastInstance client = getHazelcastHandle();
         IMap<String,String> map = client.getMap("profile-map");
         backendService.updateProfileDetails(userName, newProfileData);
-        map.put(userName,newProfileData, 3600, TimeUnit.SECONDS);
+        map.put(userName,newProfileData, 10, TimeUnit.SECONDS);
+        client.shutdown();
+    }
+
+    public static void main(String[] args) {
+        updateProfileData("user1", "profile-details-1");
+        getProfileData("user1");
+        try {
+            Thread.sleep(12000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        getProfileData("user1");
     }
 
 }

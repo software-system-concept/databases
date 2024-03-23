@@ -13,12 +13,13 @@ public class BasicCachingDemo {
         clientConfig.setClusterName("TestCluster1");
         //clientConfig.setCredentials(new UsernamePasswordCredentials("", ""));
         ClientNetworkConfig clientNetworkConfig = new ClientNetworkConfig();
+        // Change the below line to use your own IP address
         clientNetworkConfig.setAddresses(List.of("192.168.178.19"));
         clientConfig.setNetworkConfig(clientNetworkConfig);
 
         HazelcastInstance client = HazelcastClient.newHazelcastClient(clientConfig);
 
-        IMap<String,String> map = client.getMap("country-map");
+        IMap<String,String> map = client.getMap("cache-1");
         createSingleCacheWithTTL(map);
 
         client.shutdown();
@@ -33,7 +34,7 @@ public class BasicCachingDemo {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println("Let's check if cache exist after timeout, cache value = "+map.get("test-key"));
+        System.out.println("Let's check if cache exist (after timeout), cache value = "+map.get("test-key"));
 
     }
 }
